@@ -211,7 +211,10 @@ public class AudioFxFragment extends Fragment implements StateCallbacks.DeviceCh
     }
 
     public void updateEnabledState() {
-        boolean currentDeviceEnabled = mConfig.isCurrentDeviceEnabled();
+        final AudioDeviceInfo current = mConfig.getCurrentDevice();
+        final boolean isSpeaker = current != null &&
+                current.getType() == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER;
+        boolean currentDeviceEnabled = isSpeaker && mConfig.isCurrentDeviceEnabled();
         if (mEqFragment != null) {
             mEqFragment.updateEnabledState();
         }
@@ -239,10 +242,7 @@ public class AudioFxFragment extends Fragment implements StateCallbacks.DeviceCh
         mMenuDevices.getSubMenu().clear();
         mMenuItems.clear();
 
-        final AudioDeviceInfo currentDevice = mConfig.getCurrentDevice();
-
-        MenuItem selectedItem = null;
-
+        // Speaker only UI
         List<AudioDeviceInfo> speakerDevices = mConfig.getConnectedDevices(
                 AudioDeviceInfo.TYPE_BUILTIN_SPEAKER);
         if (speakerDevices.size() > 0) {
@@ -252,68 +252,10 @@ public class AudioFxFragment extends Fragment implements StateCallbacks.DeviceCh
                     Menu.NONE, MasterConfigControl.getDeviceDisplayString(getActivity(), ai));
             item.setIcon(R.drawable.ic_action_dsp_icons_speaker);
             mMenuItems.put(item, ai);
-            selectedItem = item;
-        }
-
-        List<AudioDeviceInfo> headsetDevices = mConfig.getConnectedDevices(
-                AudioDeviceInfo.TYPE_WIRED_HEADPHONES, AudioDeviceInfo.TYPE_WIRED_HEADSET);
-        if (headsetDevices.size() > 0) {
-            AudioDeviceInfo ai = headsetDevices.get(0);
-            int viewId = View.generateViewId();
-            MenuItem item = mMenuDevices.getSubMenu().add(R.id.devices, viewId,
-                    Menu.NONE, MasterConfigControl.getDeviceDisplayString(getActivity(), ai));
-            item.setIcon(R.drawable.ic_action_dsp_icons_headphones);
-            mMenuItems.put(item, ai);
-            if (currentDevice.getId() == ai.getId()) {
-                selectedItem = item;
-            }
-        }
-
-        List<AudioDeviceInfo> lineOutDevices = mConfig.getConnectedDevices(
-                AudioDeviceInfo.TYPE_LINE_ANALOG, AudioDeviceInfo.TYPE_LINE_DIGITAL);
-        if (lineOutDevices.size() > 0) {
-            AudioDeviceInfo ai = lineOutDevices.get(0);
-            int viewId = View.generateViewId();
-            MenuItem item = mMenuDevices.getSubMenu().add(R.id.devices, viewId,
-                    Menu.NONE, MasterConfigControl.getDeviceDisplayString(getActivity(), ai));
-            item.setIcon(R.drawable.ic_action_dsp_icons_lineout);
-            mMenuItems.put(item, ai);
-            if (currentDevice.getId() == ai.getId()) {
-                selectedItem = item;
-            }
-        }
-
-        List<AudioDeviceInfo> bluetoothDevices = mConfig.getConnectedDevices(
-                AudioDeviceInfo.TYPE_BLUETOOTH_A2DP);
-        for (AudioDeviceInfo ai : bluetoothDevices) {
-            int viewId = View.generateViewId();
-            MenuItem item = mMenuDevices.getSubMenu().add(R.id.devices, viewId,
-                    Menu.NONE, MasterConfigControl.getDeviceDisplayString(getActivity(), ai));
-            item.setIcon(R.drawable.ic_action_dsp_icons_bluetooth);
-            mMenuItems.put(item, ai);
-            if (currentDevice.getId() == ai.getId()) {
-                selectedItem = item;
-            }
-        }
-
-        List<AudioDeviceInfo> usbDevices = mConfig.getConnectedDevices(
-                AudioDeviceInfo.TYPE_USB_ACCESSORY, AudioDeviceInfo.TYPE_USB_DEVICE,
-                AudioDeviceInfo.TYPE_USB_HEADSET);
-        for (AudioDeviceInfo ai : usbDevices) {
-            int viewId = View.generateViewId();
-            MenuItem item = mMenuDevices.getSubMenu().add(R.id.devices, viewId,
-                    Menu.NONE, MasterConfigControl.getDeviceDisplayString(getActivity(), ai));
-            item.setIcon(R.drawable.ic_action_device_usb);
-            mMenuItems.put(item, ai);
-            if (currentDevice.getId() == ai.getId()) {
-                selectedItem = item;
-            }
+            item.setChecked(true);
+            mMenuDevices.setIcon(item.getIcon());
         }
         mMenuDevices.getSubMenu().setGroupCheckable(R.id.devices, true, true);
-        if (selectedItem != null) {
-            selectedItem.setChecked(true);
-            mMenuDevices.setIcon(selectedItem.getIcon());
-        }
     }
 
     @Override

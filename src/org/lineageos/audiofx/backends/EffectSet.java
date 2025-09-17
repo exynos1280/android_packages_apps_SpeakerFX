@@ -185,6 +185,9 @@ public abstract class EffectSet {
         return 0;
     }
 
+    public void setOutputGainMillibels(int gainMb) {
+    }
+
     public boolean isMarkedForDeath() {
         return mMarkedForDeath;
     }

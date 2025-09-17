@@ -256,8 +256,9 @@ public class KnobContainer extends LinearLayout
         }
         final boolean speaker = device.getType() == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER;
 
-        mKnobCommander.updateBassKnob(mBassKnob, !speaker);
-        mKnobCommander.updateVirtualizerKnob(mVirtualizerKnob, !speaker);
+        // allow full control only on speaker
+        mKnobCommander.updateBassKnob(mBassKnob, speaker);
+        mKnobCommander.updateVirtualizerKnob(mVirtualizerKnob, speaker);
         setKnobVisible(KnobCommander.KNOB_VIRTUALIZER, true);
     }
 

@@ -10,6 +10,7 @@ import android.media.AudioDeviceInfo;
 import android.media.audiofx.AudioEffect;
 import android.media.audiofx.BassBoost;
 import android.media.audiofx.PresetReverb;
+import android.media.audiofx.LoudnessEnhancer;
 import android.media.audiofx.Virtualizer;
 import android.util.Log;
 
@@ -35,6 +36,11 @@ class AndroidEffects extends EffectSetWithAndroidEq {
      */
     private PresetReverb mPresetReverb;
 
+    /**
+     * Session-specific loudness enhancer
+     */
+    private LoudnessEnhancer mLoudnessEnhancer;
+
     public AndroidEffects(int sessionId, AudioDeviceInfo deviceInfo) {
         super(sessionId, deviceInfo);
     }
@@ -46,6 +52,12 @@ class AndroidEffects extends EffectSetWithAndroidEq {
         mBassBoost = new BassBoost(100, mSessionId);
         mVirtualizer = new Virtualizer(100, mSessionId);
         mPresetReverb = new PresetReverb(100, mSessionId);
+        // create loudness enhancer for session
+        try {
+            mLoudnessEnhancer = new LoudnessEnhancer(mSessionId);
+        } catch (Throwable t) {
+            mLoudnessEnhancer = null;
+        }
     }
 
     @Override
@@ -73,14 +85,38 @@ class AndroidEffects extends EffectSetWithAndroidEq {
         } catch (Exception e) {
             // ignored
         }
+        try {
+            if (mLoudnessEnhancer != null) {
+                mLoudnessEnhancer.release();
+            }
+        } catch (Exception e) {
+            // ignored
+        }
         mBassBoost = null;
         mVirtualizer = null;
         mPresetReverb = null;
+        mLoudnessEnhancer = null;
     }
 
     @Override
     public synchronized void setDevice(AudioDeviceInfo deviceInfo) {
         super.setDevice(deviceInfo);
+        // apply speaker-specific gain compensation
+        if (mLoudnessEnhancer != null && deviceInfo != null) {
+            final boolean isSpeaker = deviceInfo.getType() == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER;
+            try {
+                if (isSpeaker) {
+                    // Moderate boost: +8 dB
+                    mLoudnessEnhancer.setTargetGain(800);
+                    mLoudnessEnhancer.setEnabled(true);
+                } else {
+                    mLoudnessEnhancer.setEnabled(false);
+                    mLoudnessEnhancer.setTargetGain(0);
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to update LoudnessEnhancer for device change", e);
+            }
+        }
     }
 
     @Override
@@ -110,6 +146,13 @@ class AndroidEffects extends EffectSetWithAndroidEq {
                 }
             } catch (Exception e) {
                 Log.e(TAG, "Unable to disable reverb!", e);
+            }
+            try {
+                if (mLoudnessEnhancer != null) {
+                    mLoudnessEnhancer.setEnabled(false);
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Unable to disable loudness enhancer!", e);
             }
         }
     }
@@ -191,6 +234,19 @@ class AndroidEffects extends EffectSetWithAndroidEq {
             e.setParameter(p, v);
         } catch (Exception ex) {
             Log.e(TAG, "Failed to set param " + p + " for effect " + e.getDescriptor().name, ex);
+        }
+    }
+
+    @Override
+    public void setOutputGainMillibels(int gainMb) {
+        if (mLoudnessEnhancer == null) {
+            return;
+        }
+        try {
+            mLoudnessEnhancer.setTargetGain(gainMb);
+            mLoudnessEnhancer.setEnabled(gainMb != 0);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to set loudness target gain", e);
         }
     }
 }

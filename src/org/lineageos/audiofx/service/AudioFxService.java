@@ -114,6 +114,19 @@ public class AudioFxService extends Service
         mSessionManager = new SessionManager(getApplicationContext(), mHandler, mDevicePrefs,
                 mCurrentDevice);
         mOutputListener.addCallback(mDevicePrefs, mSessionManager);
+        // ensure session 0 is attached immediately if we're already on speaker
+        try {
+            final boolean isSpeaker = mCurrentDevice != null &&
+                mCurrentDevice.getType() == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER;
+            if (isSpeaker) {
+            if (DEBUG) Log.i(TAG, "Attaching global session(0) on service start");
+            mSessionManager.addSession(0);
+            mSessionManager.update(ALL_CHANGED | EQ_CHANGED | BASS_BOOST_CHANGED |
+                VIRTUALIZER_CHANGED | REVERB_CHANGED);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to attach global session on start", e);
+        }
     }
 
     @Override
@@ -145,6 +158,14 @@ public class AudioFxService extends Service
         }
 
         mCurrentDevice = outputDevice;
+
+        final boolean isSpeaker = mCurrentDevice.getType() == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER;
+        if (isSpeaker) {
+            // kick the session manager to ensure global session 0 is attached and configured
+            mSessionManager.addSession(0);
+            mSessionManager.update(ALL_CHANGED | EQ_CHANGED | BASS_BOOST_CHANGED |
+                    VIRTUALIZER_CHANGED | REVERB_CHANGED);
+        }
 
         if (DEBUG) {
             Log.d(TAG, "Broadcasting device changed event");

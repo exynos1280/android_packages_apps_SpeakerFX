@@ -4,7 +4,7 @@
 //
 
 android_app {
-    name: "AudioFX",
+    name: "SpeakerFX",
 
     srcs: ["src/**/*.java"],
 
@@ -22,18 +22,18 @@ android_app {
     certificate: "platform",
     system_ext_specific: true,
 
-    overrides: ["MusicFX"],
+    overrides: ["MusicFX", "AudioFX"],
 
     optimize: {
         enabled: false,
     },
 
-    required: ["privapp_whitelist_org.lineageos.audiofx"],
+    required: ["privapp_whitelist_org.lineageos.speakerfx"],
 }
 
 prebuilt_etc {
-    name: "privapp_whitelist_org.lineageos.audiofx",
-    src: "privapp_whitelist_org.lineageos.audiofx.xml",
+    name: "privapp_whitelist_org.lineageos.speakerfx",
+    src: "privapp_whitelist_org.lineageos.speakerfx.xml",
     system_ext_specific: true,
     sub_dir: "permissions",
     filename_from_src: true,

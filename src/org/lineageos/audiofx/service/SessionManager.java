@@ -35,6 +35,7 @@ import android.util.SparseArray;
 import org.lineageos.audiofx.backends.EffectSet;
 import org.lineageos.audiofx.backends.EffectsFactory;
 import org.lineageos.audiofx.eq.EqUtils;
+import org.lineageos.audiofx.Constants;
 
 class SessionManager implements AudioOutputChangeListener.AudioOutputChangedCallback {
 
@@ -163,6 +164,18 @@ class SessionManager implements AudioOutputChangeListener.AudioOutputChangedCall
         final boolean globalEnabled = prefs.getBoolean(DEVICE_AUDIOFX_GLOBAL_ENABLE,
                 DEVICE_DEFAULT_GLOBAL_ENABLE);
 
+        // only operate when the active device is the built-in speaker
+        final boolean isSpeaker = mCurrentDevice != null &&
+                mCurrentDevice.getType() == android.media.AudioDeviceInfo.TYPE_BUILTIN_SPEAKER;
+        if (!isSpeaker) {
+            // bypass effects when not on speaker
+            session.setGlobalEnabled(false);
+            session.setOutputGainMillibels(0);
+            session.commitUpdate();
+            if (DEBUG) Log.i(TAG, "Bypassing effects for non-speaker route");
+            return;
+        }
+
         if ((flags & ALL_CHANGED) > 0) {
             // global bypass toggle
             session.setGlobalEnabled(globalEnabled);
@@ -178,13 +191,24 @@ class SessionManager implements AudioOutputChangeListener.AudioOutputChangedCall
             // equalizer
             try {
                 if ((flags & EQ_CHANGED) > 0) {
-                    // equalizer is always on unless bypassed
-                    session.enableEqualizer(true);
-                    String savedPreset = prefs.getString(DEVICE_AUDIOFX_EQ_PRESET_LEVELS, null);
-                    if (savedPreset != null) {
+                    String savedLevels = prefs.getString(DEVICE_AUDIOFX_EQ_PRESET_LEVELS, null);
+                    String presetIdxStr = prefs.getString(Constants.DEVICE_AUDIOFX_EQ_PRESET, null);
+                    boolean enableEq = false;
+                    if (savedLevels != null) {
                         session.setEqualizerLevelsDecibels(
-                                EqUtils.stringBandsToFloats(savedPreset));
+                                EqUtils.stringBandsToFloats(savedLevels));
+                        enableEq = true;
+                    } else if (presetIdxStr != null) {
+                        try {
+                            short presetIdx = Short.parseShort(presetIdxStr);
+                            session.useEqualizerPreset(presetIdx);
+                            // Enable EQ only if not the library's "Flat" preset name
+                            String name = session.getEqualizerPresetName(presetIdx);
+                            enableEq = name == null ? true : !"flat".equalsIgnoreCase(name);
+                        } catch (NumberFormatException ignore) {
+                        }
                     }
+                    session.enableEqualizer(enableEq);
                 }
             } catch (Exception e) {
                 Log.e(TAG, "Error enabling equalizer!", e);
@@ -226,6 +250,13 @@ class SessionManager implements AudioOutputChangeListener.AudioOutputChangedCall
                 Log.e(TAG, "Error enabling virtualizer!");
             }
 
+            // speaker loudness compensation
+            try {
+                session.setOutputGainMillibels(800); // ~ +8 dB boost
+            } catch (Exception e) {
+                Log.e(TAG, "Error setting output gain", e);
+            }
+
             // mic drop
             if (!session.commitUpdate()) {
                 Log.e(TAG, "session " + session + " failed to commitUpdate()");
@@ -252,7 +283,7 @@ class SessionManager implements AudioOutputChangeListener.AudioOutputChangedCall
                          * msg.obj = sessionId
                          */
                         sessionId = (Integer) msg.obj;
-                        if (sessionId == null || sessionId <= 0) {
+                        if (sessionId == null || sessionId < 0) {
                             break;
                         }
 
@@ -279,7 +310,7 @@ class SessionManager implements AudioOutputChangeListener.AudioOutputChangedCall
                          * msg.obj = sessionId
                          */
                         sessionId = (Integer) msg.obj;
-                        if (sessionId == null || sessionId <= 0) {
+                        if (sessionId == null || sessionId < 0) {
                             break;
                         }
 
@@ -319,7 +350,7 @@ class SessionManager implements AudioOutputChangeListener.AudioOutputChangedCall
                         sessionId = (Integer) msg.obj;
                         flags = msg.arg1;
 
-                        if (sessionId == null || sessionId <= 0) {
+                        if (sessionId == null || sessionId < 0) {
                             break;
                         }
 
@@ -359,6 +390,23 @@ class SessionManager implements AudioOutputChangeListener.AudioOutputChangedCall
             if (mCurrentDevice == null ||
                     (outputDevice != null && mCurrentDevice.getId() != outputDevice.getId())) {
                 mCurrentDevice = outputDevice;
+            }
+
+            final boolean isSpeaker = mCurrentDevice != null &&
+                    mCurrentDevice.getType() == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER;
+
+            // ensure session 0 is attached on speaker
+            final EffectSet globalSession = mAudioSessionsL.get(0);
+            if (isSpeaker) {
+                if (globalSession == null) {
+                    if (DEBUG) Log.i(TAG, "Attaching global session(0) on speaker route");
+                    mHandler.obtainMessage(MSG_ADD_SESSION, 0).sendToTarget();
+                }
+            } else {
+                if (globalSession != null) {
+                    if (DEBUG) Log.i(TAG, "Removing global session(0) off non-speaker route");
+                    removeSession(0);
+                }
             }
 
             EffectSet session = null;
