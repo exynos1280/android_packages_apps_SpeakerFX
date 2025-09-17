@@ -181,6 +181,12 @@ public class ActivityMusic extends Activity {
         }
     }
 
+    public void setGlobalToggleEnabled(boolean enabled) {
+        if (mCurrentDeviceToggle != null) {
+            mCurrentDeviceToggle.setEnabled(enabled);
+        }
+    }
+
     public CompoundButton getGlobalSwitch() {
         return mCurrentDeviceToggle;
     }

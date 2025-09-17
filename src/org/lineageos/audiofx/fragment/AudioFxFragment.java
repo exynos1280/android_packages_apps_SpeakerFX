@@ -17,12 +17,8 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.media.AudioDeviceInfo;
 import android.os.Bundle;
-import android.util.ArrayMap;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CompoundButton;
@@ -54,11 +50,6 @@ public class AudioFxFragment extends Fragment implements StateCallbacks.DeviceCh
     // whether we are in the middle of animating while switching devices
     boolean mDeviceChanging;
 
-    private MenuItem mMenuDevices;
-
-    // current selected index
-    public int mSelectedPosition = 0;
-
     EqualizerFragment mEqFragment;
     ControlsFragment mControlFragment;
 
@@ -71,10 +62,6 @@ public class AudioFxFragment extends Fragment implements StateCallbacks.DeviceCh
     private EqualizerManager mEqManager;
 
     private AudioDeviceInfo mSystemDevice;
-    private AudioDeviceInfo mUserSelection;
-
-    private final Map<MenuItem, AudioDeviceInfo> mMenuItems =
-            new ArrayMap<MenuItem, AudioDeviceInfo>();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -84,21 +71,21 @@ public class AudioFxFragment extends Fragment implements StateCallbacks.DeviceCh
         mEqManager = mConfig.getEqualizerManager();
 
         if (savedInstanceState != null) {
-            int user = savedInstanceState.getInt("user_device");
-            mUserSelection = mConfig.getDeviceById(user);
             int system = savedInstanceState.getInt("system_device");
             mSystemDevice = mConfig.getDeviceById(system);
         }
 
         mDisabledColor = getResources().getColor(R.color.disabled_eq);
 
-        setHasOptionsMenu(true);
+        // Speaker-only UI
+        setHasOptionsMenu(false);
     }
 
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        outState.putInt("user_device", mUserSelection == null ? -1 : mUserSelection.getId());
+        // outState.putInt("user_device", mUserSelection == null ? -1 : mUserSelection.getId())
+        // preserve system device selection
         outState.putInt("system_device", mSystemDevice == null ? -1 : mSystemDevice.getId());
     }
 
@@ -223,56 +210,12 @@ public class AudioFxFragment extends Fragment implements StateCallbacks.DeviceCh
         }
 
         ((ActivityMusic) getActivity()).setGlobalToggleChecked(currentDeviceEnabled);
+        // disable the global toggle when the device isn't the built-in speaker
+        ((ActivityMusic) getActivity()).setGlobalToggleEnabled(isSpeaker && mConfig.isCurrentDeviceEnabled());
 
         if (mInterceptLayout != null) {
             mInterceptLayout.setInterception(!currentDeviceEnabled);
         }
-    }
-
-    @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        super.onCreateOptionsMenu(menu, inflater);
-        inflater.inflate(R.menu.devices, menu);
-        mMenuDevices = menu.findItem(R.id.devices);
-    }
-
-    @Override
-    public void onPrepareOptionsMenu(Menu menu) {
-        super.onPrepareOptionsMenu(menu);
-        mMenuDevices.getSubMenu().clear();
-        mMenuItems.clear();
-
-        // Speaker only UI
-        List<AudioDeviceInfo> speakerDevices = mConfig.getConnectedDevices(
-                AudioDeviceInfo.TYPE_BUILTIN_SPEAKER);
-        if (speakerDevices.size() > 0) {
-            AudioDeviceInfo ai = speakerDevices.get(0);
-            int viewId = View.generateViewId();
-            MenuItem item = mMenuDevices.getSubMenu().add(R.id.devices, viewId,
-                    Menu.NONE, MasterConfigControl.getDeviceDisplayString(getActivity(), ai));
-            item.setIcon(R.drawable.ic_action_dsp_icons_speaker);
-            mMenuItems.put(item, ai);
-            item.setChecked(true);
-            mMenuDevices.setIcon(item.getIcon());
-        }
-        mMenuDevices.getSubMenu().setGroupCheckable(R.id.devices, true, true);
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        AudioDeviceInfo device = mMenuItems.get(item);
-
-        if (device != null) {
-            mDeviceChanging = true;
-            if (item.isCheckable()) {
-                item.setChecked(!item.isChecked());
-            }
-            mSystemDevice = mConfig.getSystemDevice();
-            mUserSelection = device;
-            getActivity().runOnUiThread(() -> mConfig.setCurrentDevice(mUserSelection, true));
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
     }
 
     @Override
@@ -356,7 +299,6 @@ public class AudioFxFragment extends Fragment implements StateCallbacks.DeviceCh
     @Override
     public void onDeviceChanged(AudioDeviceInfo device, boolean userChange) {
         updateEnabledState();
-        getActivity().invalidateOptionsMenu();
     }
 
     public CompoundButton getGlobalSwitch() {
