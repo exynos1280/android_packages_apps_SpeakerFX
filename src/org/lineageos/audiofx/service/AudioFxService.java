@@ -159,6 +159,10 @@ public class AudioFxService extends Service
 
         mCurrentDevice = outputDevice;
 
+        if (mSessionManager == null) {
+            Log.w(TAG, "SessionManager is null in onAudioOutputChanged, ignoring output change");
+            return;
+        }
         final boolean isSpeaker = mCurrentDevice.getType() == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER;
         if (isSpeaker) {
             // kick the session manager to ensure global session 0 is attached and configured
