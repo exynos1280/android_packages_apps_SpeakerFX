@@ -220,6 +220,8 @@ public class DevicePreferenceManager
         final SharedPreferences speakerPrefs = prefsFor(DEVICE_SPEAKER);
 
 
+        // Headphone defaults removed: SpeakerFX is speaker-only
+
         // for 5 band configs, let's add a `Small Speaker` configuration if one
         // doesn't exist ( from oss AudioFX: -170;270;50;-220;200 )
         if (Integer.parseInt(globalPrefs.getString(EQUALIZER_NUMBER_OF_BANDS, "0")) == 5 &&

@@ -97,7 +97,6 @@ public class ActivityMusic extends Activity {
                         init(savedInstanceState);
 
                         mWaitingForService = false;
-                        invalidateOptionsMenu();
                         mServiceReadyObserver = null;
                     }
                 }

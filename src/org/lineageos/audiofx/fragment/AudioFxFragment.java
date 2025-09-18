@@ -201,7 +201,7 @@ public class AudioFxFragment extends Fragment implements StateCallbacks.DeviceCh
         final AudioDeviceInfo current = mConfig.getCurrentDevice();
         final boolean isSpeaker = current != null &&
                 current.getType() == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER;
-        boolean currentDeviceEnabled = isSpeaker && mConfig.isCurrentDeviceEnabled();
+        boolean enabled = isSpeaker && mConfig.isCurrentDeviceEnabled();
         if (mEqFragment != null) {
             mEqFragment.updateEnabledState();
         }
@@ -209,12 +209,11 @@ public class AudioFxFragment extends Fragment implements StateCallbacks.DeviceCh
             mControlFragment.updateEnabledState();
         }
 
-        ((ActivityMusic) getActivity()).setGlobalToggleChecked(currentDeviceEnabled);
-        // disable the global toggle when the device isn't the built-in speaker
-        ((ActivityMusic) getActivity()).setGlobalToggleEnabled(isSpeaker && mConfig.isCurrentDeviceEnabled());
+        ((ActivityMusic) getActivity()).setGlobalToggleChecked(enabled);
+        ((ActivityMusic) getActivity()).setGlobalToggleEnabled(isSpeaker);
 
         if (mInterceptLayout != null) {
-            mInterceptLayout.setInterception(!currentDeviceEnabled);
+            mInterceptLayout.setInterception(!enabled);
         }
     }
 

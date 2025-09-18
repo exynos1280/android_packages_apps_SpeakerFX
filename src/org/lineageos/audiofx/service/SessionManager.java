@@ -164,21 +164,13 @@ class SessionManager implements AudioOutputChangeListener.AudioOutputChangedCall
         final boolean globalEnabled = prefs.getBoolean(DEVICE_AUDIOFX_GLOBAL_ENABLE,
                 DEVICE_DEFAULT_GLOBAL_ENABLE);
 
-        // only operate when the active device is the built-in speaker
         final boolean isSpeaker = mCurrentDevice != null &&
                 mCurrentDevice.getType() == android.media.AudioDeviceInfo.TYPE_BUILTIN_SPEAKER;
-        if (!isSpeaker) {
-            // bypass effects when not on speaker
-            session.setGlobalEnabled(false);
-            session.setOutputGainMillibels(0);
-            session.commitUpdate();
-            if (DEBUG) Log.i(TAG, "Bypassing effects for non-speaker route");
-            return;
-        }
 
         if ((flags & ALL_CHANGED) > 0) {
-            // global bypass toggle
-            session.setGlobalEnabled(globalEnabled);
+            // The global toggle state should only be TRUE if the user has enabled it
+            // AND the current output device is the speaker.
+            session.setGlobalEnabled(globalEnabled && isSpeaker);
         }
 
         if (globalEnabled) {
@@ -252,7 +244,11 @@ class SessionManager implements AudioOutputChangeListener.AudioOutputChangedCall
 
             // speaker loudness compensation
             try {
-                session.setOutputGainMillibels(800); // ~ +8 dB boost
+                if (isSpeaker) {
+                    session.setOutputGainMillibels(800); // ~ +8 dB boost
+                } else {
+                    session.setOutputGainMillibels(0);
+                }
             } catch (Exception e) {
                 Log.e(TAG, "Error setting output gain", e);
             }
