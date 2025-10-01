@@ -106,8 +106,8 @@ class AndroidEffects extends EffectSetWithAndroidEq {
             final boolean isSpeaker = deviceInfo.getType() == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER;
             try {
                 if (isSpeaker) {
-                    // Moderate boost: +8 dB
-                    mLoudnessEnhancer.setTargetGain(800);
+                    // High boost: +24 dB
+                    mLoudnessEnhancer.setTargetGain(2400);
                     mLoudnessEnhancer.setEnabled(true);
                 } else {
                     mLoudnessEnhancer.setEnabled(false);
