@@ -48,7 +48,7 @@ public class DevicePreferenceManager
         implements AudioOutputChangeListener.AudioOutputChangedCallback {
 
     // Current pref version, bump to rebuild prefs
-    public static final int CURRENT_PREFS_INT_VERSION = 4;
+    public static final int CURRENT_PREFS_INT_VERSION = 5;
 
     private static final String TAG = AudioFxService.TAG;
     private static final boolean DEBUG = Log.isLoggable(TAG, Log.DEBUG);
