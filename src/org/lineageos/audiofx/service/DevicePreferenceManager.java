@@ -122,6 +122,9 @@ public class DevicePreferenceManager
             if (DEBUG) {
                 Log.e(TAG, "we've already saved defaults and don't need a pref update. aborting.");
             }
+            // Clear all global preferences to ensure clean slate
+            prefs.edit().clear().apply();
+            Log.d(TAG, "Cleared all global preferences for clean upgrade");
             return;
         }
         EffectSet temp = new EffectsFactory().createEffectSet(mContext, 0, null);
