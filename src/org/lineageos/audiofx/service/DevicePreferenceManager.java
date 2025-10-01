@@ -236,7 +236,7 @@ public class DevicePreferenceManager
             presetNames.add(smallSpeakers);
             String newPresetNames = TextUtils.join("|", presetNames);
             globalPrefs.edit()
-                    .putString(EQUALIZER_PRESET + currentPresets, "-170;270;50;-220;200")
+                    .putString(EQUALIZER_PRESET + currentPresets, "-50;530;-1000;-550;-10")
                     .putString(EQUALIZER_PRESET_NAMES, newPresetNames)
                     .putString(EQUALIZER_NUMBER_OF_PRESETS, Integer.toString(++currentPresets))
                     .apply();
