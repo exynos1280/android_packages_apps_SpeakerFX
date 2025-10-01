@@ -116,15 +116,15 @@ public class DevicePreferenceManager
         if (needsPrefsUpdate) {
             Log.d(TAG, "rebuilding presets due to preference upgrade from " + currentPrefVer
                     + " to " + CURRENT_PREFS_INT_VERSION);
+            // Clear all global preferences to ensure clean slate
+            prefs.edit().clear().apply();
+            Log.d(TAG, "Cleared all global preferences for clean upgrade");
         }
 
         if (prefs.getBoolean(SAVED_DEFAULTS, false) && !needsPrefsUpdate) {
             if (DEBUG) {
                 Log.e(TAG, "we've already saved defaults and don't need a pref update. aborting.");
             }
-            // Clear all global preferences to ensure clean slate
-            prefs.edit().clear().apply();
-            Log.d(TAG, "Cleared all global preferences for clean upgrade");
             return;
         }
         EffectSet temp = new EffectsFactory().createEffectSet(mContext, 0, null);
@@ -249,7 +249,7 @@ public class DevicePreferenceManager
             speakerPrefs.edit()
                     .putBoolean(DEVICE_AUDIOFX_GLOBAL_ENABLE, true)
                     .putBoolean(DEVICE_AUDIOFX_BASS_ENABLE, true)
-                    .putString(DEVICE_AUDIOFX_BASS_STRENGTH, "500")
+                    .putString(DEVICE_AUDIOFX_BASS_STRENGTH, "0")
                     .putBoolean(DEVICE_AUDIOFX_VIRTUALIZER_ENABLE, false)
                     .putString(DEVICE_AUDIOFX_VIRTUALIZER_STRENGTH, "0")
                     .putString(DEVICE_AUDIOFX_EQ_PRESET, String.valueOf(idx))
