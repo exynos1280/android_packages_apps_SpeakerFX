@@ -17,6 +17,7 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewStub;
+import android.widget.Button;
 import android.widget.CompoundButton;
 
 import androidx.annotation.NonNull;
@@ -91,7 +92,7 @@ public class ActivityMusic extends Activity {
                 @Override
                 public void onSharedPreferenceChanged(SharedPreferences sharedPreferences,
                         String key) {
-                    if (key.equals(Constants.SAVED_DEFAULTS) && defaultsSetup()) {
+                    if (key != null && key.equals(Constants.SAVED_DEFAULTS) && defaultsSetup()) {
                         sharedPreferences.unregisterOnSharedPreferenceChangeListener(this);
                         mConfig.onResetDefaults();
                         init(savedInstanceState);
@@ -151,6 +152,9 @@ public class ActivityMusic extends Activity {
 
         mCurrentDeviceToggle = ab.getCustomView().findViewById(R.id.global_toggle);
         mCurrentDeviceToggle.setOnCheckedChangeListener(mGlobalEnableToggleListener);
+
+        Button resetButton = ab.getCustomView().findViewById(R.id.reset_settings_button);
+        resetButton.setOnClickListener(v -> mConfig.resetAllSettings());
 
         if (savedInstanceState == null && findViewById(R.id.main_fragment) != null) {
             getFragmentManager()

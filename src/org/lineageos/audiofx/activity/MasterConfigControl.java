@@ -91,6 +91,20 @@ public class MasterConfigControl {
         mEqManager.applyDefaults();
     }
 
+    public void resetAllSettings() {
+        // Clear all global preferences and rebuild everything
+        SharedPreferences globalPrefs = getGlobalPrefs();
+        globalPrefs.edit().clear().apply();
+
+        // Trigger the reset by creating DevicePreferenceManager instance
+        org.lineageos.audiofx.service.DevicePreferenceManager devicePrefs =
+                new org.lineageos.audiofx.service.DevicePreferenceManager(mContext, getCurrentDevice());
+        devicePrefs.saveAndApplyDefaults(true);
+
+        // Refresh the UI
+        mCallbacks.notifyDeviceChanged(getCurrentDevice(), false);
+    }
+
     public synchronized boolean bindService() {
         boolean conn = true;
         if (SERVICE_DEBUG) Log.i(TAG, "bindService() refCount=" + mServiceRefCount);

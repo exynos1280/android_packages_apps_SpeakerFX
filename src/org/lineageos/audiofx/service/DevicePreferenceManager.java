@@ -102,7 +102,7 @@ public class DevicePreferenceManager
      * First we read presets from the system, then adjusts some setting values for some better
      * defaults!
      */
-    private void saveAndApplyDefaults(boolean overridePrevious) {
+    public void saveAndApplyDefaults(boolean overridePrevious) {
         if (DEBUG) {
             Log.d(TAG, "saveAndApplyDefaults() called with overridePrevious = " +
                     "[" + overridePrevious + "]");
