@@ -7,8 +7,10 @@
 package org.lineageos.audiofx.service;
 
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.media.AudioDeviceInfo;
+import android.media.AudioManager;
 import android.media.audiofx.AudioEffect;
 import android.os.Binder;
 import android.os.Handler;
@@ -53,6 +55,7 @@ public class AudioFxService extends Service
     private DevicePreferenceManager mDevicePrefs;
     private SessionManager mSessionManager;
     private Handler mHandler;
+    private AudioManager mAudioManager;
 
     private AudioDeviceInfo mCurrentDevice;
 
@@ -74,6 +77,18 @@ public class AudioFxService extends Service
         public void update(int flags) {
             if (checkService()) {
                 mService.get().update(flags);
+            }
+        }
+
+        public void checkForDeviceChange() {
+            if (checkService()) {
+                mService.get().checkForDeviceChange();
+            }
+        }
+
+        public void updateDevicePreferenceManager(AudioDeviceInfo device) {
+            if (checkService()) {
+                mService.get().updateDevicePreferenceManager(device);
             }
         }
 
@@ -100,8 +115,20 @@ public class AudioFxService extends Service
         handlerThread.start();
         mHandler = new Handler(handlerThread.getLooper());
 
+        mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         mOutputListener = new AudioOutputChangeListener(getApplicationContext(), mHandler);
         mOutputListener.addCallback(this);
+
+        // Add audio focus change listener to detect when music starts on different output
+        mAudioManager.requestAudioFocus(new AudioManager.OnAudioFocusChangeListener() {
+            @Override
+            public void onAudioFocusChange(int focusChange) {
+                if (focusChange == AudioManager.AUDIOFOCUS_GAIN) {
+                    Log.d(TAG, "Audio focus gained, checking for device change");
+                    mHandler.post(() -> checkForDeviceChange());
+                }
+            }
+        }, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
 
         mCurrentDevice = mOutputListener.getCurrentDevice();
 
@@ -179,6 +206,18 @@ public class AudioFxService extends Service
         Intent intent = new Intent(ACTION_DEVICE_OUTPUT_CHANGED);
         intent.putExtra("device", outputDevice.getId());
         LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(intent);
+    }
+
+    public void checkForDeviceChange() {
+        if (mOutputListener != null) {
+            mOutputListener.checkForDeviceChange();
+        }
+    }
+
+    public void updateDevicePreferenceManager(AudioDeviceInfo device) {
+        if (mDevicePrefs != null && device != null) {
+            mDevicePrefs.onAudioOutputChanged(false, device);
+        }
     }
 
     @Override

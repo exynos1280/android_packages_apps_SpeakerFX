@@ -105,6 +105,15 @@ public class MasterConfigControl {
         mCallbacks.notifyDeviceChanged(getCurrentDevice(), false);
     }
 
+    /**
+     * Check for device changes - useful when app resumes or when manual output switching occurs
+     */
+    public void checkForDeviceChange() {
+        if (mService != null) {
+            mService.checkForDeviceChange();
+        }
+    }
+
     public synchronized boolean bindService() {
         boolean conn = true;
         if (SERVICE_DEBUG) Log.i(TAG, "bindService() refCount=" + mServiceRefCount);
@@ -228,6 +237,11 @@ public class MasterConfigControl {
                 mCurrentDevice = device;
             }
             mUserDeviceOverride = null;
+        }
+
+        // Update the service's DevicePreferenceManager with the new device before loading presets
+        if (mService != null && device != null) {
+            mService.updateDevicePreferenceManager(device);
         }
 
         mEqManager.onPreDeviceChanged();

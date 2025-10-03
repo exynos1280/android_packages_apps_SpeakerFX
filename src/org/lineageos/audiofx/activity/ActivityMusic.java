@@ -165,6 +165,26 @@ public class ActivityMusic extends Activity {
     }
 
     @Override
+    public void onResume() {
+        super.onResume();
+        if (DEBUG) {
+            Log.i(TAG, "onResume() called");
+        }
+        // Check for device changes when app resumes (e.g., after switching outputs)
+        if (mConfig != null) {
+            mConfig.checkForDeviceChange();
+        }
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        if (DEBUG) {
+            Log.i(TAG, "onPause() called");
+        }
+    }
+
+    @Override
     public void onConfigurationChanged(@NonNull Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
         if (DEBUG) {
