@@ -54,12 +54,19 @@ public class DevicePreferenceManager
     private static final boolean DEBUG = Log.isLoggable(TAG, Log.DEBUG);
 
     private final Context mContext;
+    private final DeviceDefaultsManager mDeviceDefaults;
 
     private AudioDeviceInfo mCurrentDevice;
 
     public DevicePreferenceManager(Context context, AudioDeviceInfo device) {
         mContext = context;
         mCurrentDevice = device;
+        mDeviceDefaults = new DeviceDefaultsManager(context);
+
+        // Check if device/platform detection changed
+        if (mDeviceDefaults.checkAndUpdatePreset()) {
+            Log.i(TAG, "Device/platform detection changed, will force preference reset");
+        }
     }
 
     public boolean initDefaults() {
@@ -110,8 +117,13 @@ public class DevicePreferenceManager
         SharedPreferences prefs = Constants.getGlobalPrefs(mContext);
 
         final int currentPrefVer = prefs.getInt(Constants.AUDIOFX_GLOBAL_PREFS_VERSION_INT, 0);
+
+        // Check if device/platform detection changed
+        boolean deviceDetectionChanged = mDeviceDefaults.checkAndUpdatePreset();
+
         boolean needsPrefsUpdate = currentPrefVer < CURRENT_PREFS_INT_VERSION
-                || overridePrevious;
+                || overridePrevious
+                || deviceDetectionChanged;
 
         if (needsPrefsUpdate) {
             Log.d(TAG, "rebuilding presets due to preference upgrade from " + currentPrefVer
@@ -119,6 +131,11 @@ public class DevicePreferenceManager
             // Clear all global preferences to ensure clean slate
             prefs.edit().clear().apply();
             Log.d(TAG, "Cleared all global preferences for clean upgrade");
+
+            // Log device-specific changes
+            if (deviceDetectionChanged) {
+                Log.i(TAG, "Device/platform detection changed, rebuilding with new defaults");
+            }
         }
 
         if (prefs.getBoolean(SAVED_DEFAULTS, false) && !needsPrefsUpdate) {
@@ -204,12 +221,12 @@ public class DevicePreferenceManager
      * This method sets up some *persisted* defaults. Prereq: saveDefaults() must have been run
      * before this can apply its defaults properly.
      */
-    private void applyDefaults(boolean overridePrevious) {
+    private void applyDefaults(boolean needsPrefsUpdate) {
         if (DEBUG) {
-            Log.d(TAG, "applyDefaults() called with overridePrevious = [" + overridePrevious + "]");
+            Log.d(TAG, "applyDefaults() called with needsPrefsUpdate = [" + needsPrefsUpdate + "]");
         }
 
-        if (!(overridePrevious || !hasPrefs(DEVICE_SPEAKER) ||
+        if (!(needsPrefsUpdate || !hasPrefs(DEVICE_SPEAKER) ||
                 !hasPrefs(AUDIOFX_GLOBAL_FILE))) {
             return;
         }
@@ -225,22 +242,31 @@ public class DevicePreferenceManager
 
         // Headphone defaults removed: SpeakerFX is speaker-only
 
-        // for 5 band configs, let's add a `Small Speaker` configuration if one
-        // doesn't exist ( from oss AudioFX: -170;270;50;-220;200 )
-        if (Integer.parseInt(globalPrefs.getString(EQUALIZER_NUMBER_OF_BANDS, "0")) == 5 &&
-                findInList(smallSpeakers, presetNames) < 0) {
+        // for 5 band configs, let's add or update the `Small Speaker` configuration with device-specific values
+        if (Integer.parseInt(globalPrefs.getString(EQUALIZER_NUMBER_OF_BANDS, "0")) == 5) {
+            int smallSpeakerIdx = findInList(smallSpeakers, presetNames);
+            String devicePresetValues = mDeviceDefaults.getPresetValues();
 
-            int currentPresets = Integer.parseInt(
-                    globalPrefs.getString(EQUALIZER_NUMBER_OF_PRESETS, "0"));
+            if (smallSpeakerIdx < 0) {
+                // Create new Small Speaker preset
+                int currentPresets = Integer.parseInt(
+                        globalPrefs.getString(EQUALIZER_NUMBER_OF_PRESETS, "0"));
 
-            presetNames.add(smallSpeakers);
-            String newPresetNames = TextUtils.join("|", presetNames);
-            globalPrefs.edit()
-                    .putString(EQUALIZER_PRESET + currentPresets, "-50;530;-1000;-550;-10")
-                    .putString(EQUALIZER_PRESET_NAMES, newPresetNames)
-                    .putString(EQUALIZER_NUMBER_OF_PRESETS, Integer.toString(++currentPresets))
-                    .apply();
-
+                presetNames.add(smallSpeakers);
+                String newPresetNames = TextUtils.join("|", presetNames);
+                Log.i(TAG, "Selected preset: " + mDeviceDefaults.getPresetDisplayString());
+                globalPrefs.edit()
+                        .putString(EQUALIZER_PRESET + currentPresets, devicePresetValues)
+                        .putString(EQUALIZER_PRESET_NAMES, newPresetNames)
+                        .putString(EQUALIZER_NUMBER_OF_PRESETS, Integer.toString(++currentPresets))
+                        .apply();
+            } else {
+                // Update existing Small Speaker preset with device-specific values
+                Log.i(TAG, "Selected preset: " + mDeviceDefaults.getPresetDisplayString());
+                globalPrefs.edit()
+                        .putString(EQUALIZER_PRESET + smallSpeakerIdx, devicePresetValues)
+                        .apply();
+            }
         }
 
         // set the small speakers preset as the default
@@ -261,6 +287,20 @@ public class DevicePreferenceManager
         Configuration config = new Configuration(mContext.getResources().getConfiguration());
         config.setLocale(Locale.ROOT);
         return mContext.createConfigurationContext(config).getString(res);
+    }
+
+    /**
+     * Get the current device preset information for display
+     */
+    public DeviceDefaultsManager.DevicePreset getCurrentDevicePreset() {
+        return mDeviceDefaults.getCurrentPreset();
+    }
+
+    /**
+     * Get the device preset display string
+     */
+    public String getDevicePresetDisplayString() {
+        return mDeviceDefaults.getPresetDisplayString();
     }
 }
 

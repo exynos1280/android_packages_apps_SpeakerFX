@@ -104,6 +104,13 @@ public class AudioFxService extends Service
             }
             return null;
         }
+
+        public DevicePreferenceManager getDevicePreferenceManager() {
+            if (checkService()) {
+                return mService.get().getDevicePreferenceManager();
+            }
+            return null;
+        }
     }
 
     @Override
@@ -218,6 +225,10 @@ public class AudioFxService extends Service
         if (mDevicePrefs != null && device != null) {
             mDevicePrefs.onAudioOutputChanged(false, device);
         }
+    }
+
+    public DevicePreferenceManager getDevicePreferenceManager() {
+        return mDevicePrefs;
     }
 
     @Override

@@ -35,6 +35,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import org.lineageos.audiofx.Constants;
 import org.lineageos.audiofx.service.AudioFxService;
+import org.lineageos.audiofx.service.DevicePreferenceManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -402,5 +403,15 @@ public class MasterConfigControl {
      */
     public void setAutoBindToService(boolean bindToService) {
         mShouldBindToService = bindToService;
+    }
+
+    /**
+     * Get the device preference manager from the service
+     */
+    public DevicePreferenceManager getDevicePreferenceManager() {
+        if (mService != null) {
+            return mService.getDevicePreferenceManager();
+        }
+        return null;
     }
 }

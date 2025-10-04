@@ -139,9 +139,15 @@ public class ActivityMusic extends Activity {
     private void init(Bundle savedInstanceState) {
         mConfig = MasterConfigControl.getInstance(this);
 
+        // Bind to service so we can access DevicePreferenceManager
+        mConfig.bindService();
+
         ActionBar ab = getActionBar();
         ab.setTitle(R.string.app_name_lineage);
         ab.setDisplayShowTitleEnabled(true);
+
+        // Set device preset info as subtitle (will be updated when UI is ready)
+        getActionBar().setSubtitle("Defaults: loading...");
 
         final View extraView = LayoutInflater.from(this)
                 .inflate(R.layout.action_bar_custom_components, null);
@@ -154,7 +160,10 @@ public class ActivityMusic extends Activity {
         mCurrentDeviceToggle.setOnCheckedChangeListener(mGlobalEnableToggleListener);
 
         Button resetButton = ab.getCustomView().findViewById(R.id.reset_settings_button);
-        resetButton.setOnClickListener(v -> mConfig.resetAllSettings());
+        resetButton.setOnClickListener(v -> {
+            Log.i(TAG, "Reset triggered");
+            mConfig.resetAllSettings();
+        });
 
         if (savedInstanceState == null && findViewById(R.id.main_fragment) != null) {
             getFragmentManager()
@@ -174,6 +183,9 @@ public class ActivityMusic extends Activity {
         if (mConfig != null) {
             mConfig.checkForDeviceChange();
         }
+
+        // Update subtitle when user opens the app UI
+        updateDevicePresetSubtitle();
     }
 
     @Override
@@ -212,5 +224,34 @@ public class ActivityMusic extends Activity {
 
     public CompoundButton getGlobalSwitch() {
         return mCurrentDeviceToggle;
+    }
+
+    private void updateDevicePresetSubtitle() {
+        try {
+            if (mConfig == null) {
+                getActionBar().setSubtitle("Defaults: config unavailable");
+                return;
+            }
+
+            DevicePreferenceManager devicePrefs = mConfig.getDevicePreferenceManager();
+            if (devicePrefs != null) {
+                String presetInfo = devicePrefs.getDevicePresetDisplayString();
+                getActionBar().setSubtitle(presetInfo);
+            } else {
+                // Service not bound yet, try again after a short delay
+                getActionBar().setSubtitle("Defaults: loading...");
+                new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+                    DevicePreferenceManager retryPrefs = mConfig.getDevicePreferenceManager();
+                    if (retryPrefs != null) {
+                        String presetInfo = retryPrefs.getDevicePresetDisplayString();
+                        getActionBar().setSubtitle(presetInfo);
+                    } else {
+                        getActionBar().setSubtitle("Defaults: service not ready");
+                    }
+                }, 500);
+            }
+        } catch (Exception e) {
+            getActionBar().setSubtitle("Defaults: error");
+        }
     }
 }

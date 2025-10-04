@@ -34,6 +34,7 @@ import org.lineageos.audiofx.R;
 import org.lineageos.audiofx.activity.EqualizerManager;
 import org.lineageos.audiofx.activity.MasterConfigControl;
 import org.lineageos.audiofx.activity.StateCallbacks;
+import org.lineageos.audiofx.service.DevicePreferenceManager;
 import org.lineageos.audiofx.eq.EqContainerView;
 import org.lineageos.audiofx.preset.InfinitePagerAdapter;
 import org.lineageos.audiofx.preset.InfiniteViewPager;
