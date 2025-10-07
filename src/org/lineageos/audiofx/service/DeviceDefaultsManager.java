@@ -60,7 +60,7 @@ public class DeviceDefaultsManager {
     // Initialize device-specific presets
     static {
         // Device presets (higher priority)
-        DEVICE_PRESETS.put("ginkgo", "-50;200;-700;-600;300");
+        DEVICE_PRESETS.put("ginkgo", "-300;200;-700;-600;200");
 
         // Platform presets (lower priority)
         PLATFORM_PRESETS.put("s5e8825", "-50;530;-1000;-550;-10");
